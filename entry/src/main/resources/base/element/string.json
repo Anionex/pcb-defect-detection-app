@@ -1,0 +1,36 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "label"
+    },
+    {
+      "name": "apply_for_network",
+      "value": "获取网络访问权限"
+    },
+    {
+      "name": "apply_to_access_photo_reason",
+      "value": "获取图片访问权限"
+    },
+    {
+      "name": "apply_to_access_photo_scene",
+      "value": "用于读取待预测图片"
+    },
+    {
+      "name": "apply_to_read_media",
+      "value": "用于读取媒体文件以供图片选择"
+    },
+    {
+      "name": "write_media_permission_reason",
+      "value": "获取媒体写权限"
+    }
+  ]
+}

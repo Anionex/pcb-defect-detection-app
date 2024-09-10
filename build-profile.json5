@@ -1,0 +1,54 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\10051\\.ohos\\config\\default_PCBDefectDetection_LWHepXhyhaWNwHnvt1NVf-PRst0OmozmWf7d4D8Q_rs=.cer",
+          "storePassword": "0000001B86FB7F2705BA0EDC78BDB59BD679D1F058DE9DEA597078975A1F5FA03DC692BC25950DC396B0F7",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B24D50113511A6DA5C87CC5A955A04812A2C7132B0A7D10FAB17FD9EC91C489A8A77E4A25E1839A",
+          "profile": "C:\\Users\\10051\\.ohos\\config\\default_PCBDefectDetection_LWHepXhyhaWNwHnvt1NVf-PRst0OmozmWf7d4D8Q_rs=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\10051\\.ohos\\config\\default_PCBDefectDetection_LWHepXhyhaWNwHnvt1NVf-PRst0OmozmWf7d4D8Q_rs=.p12"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
