@@ -3,7 +3,7 @@ import { fileIo as fs } from '@kit.CoreFileKit';
 import { RawDetectionResultClass, DetectionResultClass, DefectClass, Defect} from "../model/DetectionResultsClass"
 import image from '@ohos.multimedia.image';
 import { BusinessError } from '@kit.BasicServicesKit';
-
+import { DetectionResultDao } from '../model/DetectionResultDao'; // 确保路径正确
 
 interface GeneratedObjectLiteralInterface_2 {
   format: string;
@@ -94,13 +94,28 @@ export async function sendDetectRequest(filePath: string, callback?: (result: st
 }
 
 // 假设 response.data 的结构与问题中的相同
-export function parseDetectionResult(responseData: RawDetectionResultClass): DetectionResultClass {
-  const detectionClasses: string[]= responseData.detection_classes;
+
+
+
+/**
+ * 解析原始检测结果数据，并生成 DetectionResultClass 实例。
+ * @param responseData 原始检测结果数据。
+ * @returns 解析后的 DetectionResultClass 实例。
+ */
+export async function parseDetectionResult(responseData: RawDetectionResultClass): Promise<DetectionResultClass> {
+  const detectionClasses: string[] = responseData.detection_classes;
   const detectionBoxes = responseData.detection_boxes;
   const detectionScores = responseData.detection_scores;
 
   // 用于存储所有缺陷的数组
   const defects: Defect[] = [];
+
+  // 实例化 DetectionResultDao
+  const dao = new DetectionResultDao();
+
+  // 获取当前数据库中的记录数量
+  const currentCount = await dao.getCount();
+  const newId = `result_${currentCount + 1}`;
 
   // 遍历所有的检测结果，并生成 Defect 对象
   for (let i = 0; i < detectionClasses.length; i++) {
@@ -130,15 +145,15 @@ export function parseDetectionResult(responseData: RawDetectionResultClass): Det
         throw new Error(`未知的缺陷类型: ${clsStr}`);
     }
 
-    // 创建 Defect 实例
+    // 创建 Defect 实例，使用 `${newId}_defect_${i}` 作为唯一 id
     const defect = new Defect(
-      `${i}`, // 用索引作为 id
-      cls,    // 缺陷类型
-      box[0], // x1
-      box[1], // y1
-      box[2], // x2
-      box[3], // y2
-      score   // 置信度
+      `${newId}_defect_${i}`, // 确保 Defect 的 id 唯一
+      cls,                    // 缺陷类型
+      box[0],                 // x1
+      box[1],                 // y1
+      box[2],                 // x2
+      box[3],                 // y2
+      score                   // 置信度
     );
 
     // 将生成的 Defect 对象添加到数组中
@@ -147,15 +162,16 @@ export function parseDetectionResult(responseData: RawDetectionResultClass): Det
 
   // 创建 DetectionResultClass 实例，使用从 response 中获取的数据
   const detectionResult = new DetectionResultClass(
-    'result1',               // id，假设为 'result1'
-    new Date(),               // 当前日期
-    '/path/to/image.jpg',     // 假设图片路径来自另一个来源
+    newId,                   // 动态生成的 id
+    new Date(),              // 当前日期
+    '/path/to/image.jpg',    // todo 图片路径
     defects,                 // 所有的 Defect 对象
-    '暂无'                 // 详情描述/备注
+    '暂无'                   // 详情描述/备注
   );
 
   return detectionResult;
 }
+
 
 
 

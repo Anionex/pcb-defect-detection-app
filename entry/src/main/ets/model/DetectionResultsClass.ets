@@ -25,21 +25,21 @@ export enum DefectClass {
 export class Defect {
   id: string;
   cls: DefectClass;
-  y1: number | 0; // 适应api的格式
-  x1: number | 0;
-  y2: number | 0;
-  x2: number | 0;
-  conf: number | 0;
+  y1: number | null; // 适应api的格式
+  x1: number | null;
+  y2: number | null;
+  x2: number | null;
+  conf: number | null;
 
   // 构造函数，接收所有属性并初始化
   constructor(
     id: string,
     cls: DefectClass,
-    y1: number | 0 = 0,
-    x1: number | 0 = 0,
-    y2: number | 0 = 0,
-    x2: number | 0 = 0,
-    conf: number | 0 = 0
+    y1: number | null = null,
+    x1: number | null = null,
+    y2: number | null = null,
+    x2: number | null = null,
+    conf: number | null = null
   ) {
     this.id = id;
     this.cls = cls;
@@ -54,17 +54,17 @@ export class Defect {
 export class DetectionResultClass {
   id: string;
   date: Date;
-  imagePath: string | 0;
+  imagePath: string | null;
   results: Defect[];
-  details: string | 0;
+  details: string | null;
 
   // 构造函数，接收部分属性并初始化
   constructor(
     id: string,
     date: Date = new Date(),  // 默认为当前日期
-    imagePath: string | 0 = 0,
+    imagePath: string | null = null,
     results: Defect[] = [],   // 默认为空数组
-    details: string | 0 = 0
+    details: string | null = null
   ) {
     this.id = id;
     this.date = date;

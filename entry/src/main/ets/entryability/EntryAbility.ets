@@ -1,10 +1,17 @@
 import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { DatabaseManager } from '../model/DatabaseManager';
 
 export default class EntryAbility extends UIAbility {
-  onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+  async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onCreate');
+    try {
+      await DatabaseManager.getInstance().initDatabase(this.context);
+      console.info('数据库初始化成功');
+    } catch (error) {
+      console.error('数据库初始化失败:', error);
+    }
   }
 
   onDestroy(): void {
