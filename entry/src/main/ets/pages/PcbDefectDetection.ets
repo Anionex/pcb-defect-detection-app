@@ -21,6 +21,11 @@ class DefectColorMapper {
   }
 }
 
+
+const STEP_SIZE = 608
+const WINDOW_PROCESS_TIME = 350
+const OTHER_DELAYS = 0
+
 @Component
 export struct PcbDefectDetection {
   @State srcImgPath: string = '';
@@ -81,13 +86,14 @@ export struct PcbDefectDetection {
     this.progress = 0; // 重置进度
 
     // 启动进度条定时器
+    let estimateProcessTime = await this.estimateProcessTime()
     this.progressTimer = setInterval(() => {
       if (this.progress < 100) {
         this.progress += 1;
       } else {
         clearInterval(this.progressTimer);
       }
-    }, 150);
+    }, estimateProcessTime / 100);
 
     try {
       const result: string = await new Promise<string>((resolve, reject) => {
@@ -111,25 +117,62 @@ export struct PcbDefectDetection {
     }
   }
 
+  async estimateProcessTime(): Promise<number> {
+    // 根据图片大小估计处理时间
+    let processTime = (Math.ceil(this.pixWidth / STEP_SIZE) + 1) *
+      (Math.ceil(this.pixHeight / STEP_SIZE) + 1) *
+      WINDOW_PROCESS_TIME +
+      OTHER_DELAYS;
+    return Number(processTime.toFixed(2)); // 保留两位小数
+  }
   build() {
-    Scroll() {
-      Column() {
-        Text('实时检测页')
-          .fontFamily('HarmonyHeiTi-Bold')
-          .fontSize(24)
-          .fontColor("#000000") // 使用十六进制颜色代码
-          .fontWeight(700)
-          .width('100%')
+    Column() {
 
-        this.ImageSelectionSection();
-        this.DetectionResultSection();
+      this.TitleBar()
+
+      Scroll() {
+        Column() {
+          Text('实时检测页')
+            .fontFamily('HarmonyHeiTi-Bold')
+            .fontSize(24)
+            .fontColor("#000000") // 使用十六进制颜色代码
+            .fontWeight(700)
+            .width('100%')
+
+          this.ImageSelectionSection();
+          this.DetectionResultSection();
+
+          Blank().height('30%') //留一点scroll空间防止bug
+        }
+        .padding({ top: 12, right: 16, bottom: 12, left: 16 });
+
+
       }
-      .padding({ top: 12, right: 16, bottom: 12, left: 16 });
+      .constraintSize({ minHeight: '100%' })
+      .edgeEffect(EdgeEffect.Spring)
+      .scrollBar(BarState.Off);
+
+
     }
-    .backgroundColor('#F1F3F5') // 保持背景色不变
-    .constraintSize({ minHeight: '100%' })
-    .edgeEffect(EdgeEffect.Spring)
-    .scrollBar(BarState.Off);
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#F5F5F5')
+
+  }
+
+  @Builder
+  TitleBar() {
+    Row() {
+      Text('实时检测')
+        .fontSize(20)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#333333')
+    }
+    .width('100%')
+    .height(56)
+    .padding({ left: 16, right: 16 })
+    .backgroundColor('#FFFFFF')
+    .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
   }
 
   @Builder
@@ -141,12 +184,23 @@ export struct PcbDefectDetection {
         .fontColor("#000000") 
         .fontWeight(350)
         .width('100%')
-
-      Image(this.srcImgPath ? this.srcImgPath : $r("app.media.image_placeholder"))
-        .width('100%')
-        .margin({ top: 19, bottom: 8 })
-        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-
+      if(this.srcImgPath) {
+        Image(this.srcImgPath)
+          .width('100%')
+          .margin({ top: 19, bottom: 8 })
+          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+      }
+      else {
+        Column(){
+          Blank().width('100%').height('12%')
+          Image($r("app.media.ic_gallery"))
+            .fillColor('#4A90E2')
+            .width('100%')
+            .margin({ top: 19, bottom: 8 })
+            .size( { width: 152, height: 152 })
+          Blank().width('100%').height('12%')
+        }.width('100%').shadow(ShadowStyle.OUTER_DEFAULT_XS)
+      }
       Button("选择图片/拍照")
         .onClick(() => this.selectImage())
         .btnDefaultStyle()
@@ -156,7 +210,7 @@ export struct PcbDefectDetection {
         .btnDefaultStyle()
         .enabled(!this.isLoading);
     }
-    .margin({ top: 30 });
+    .margin({ top: 30 })
   }
 
   @Builder
@@ -171,6 +225,7 @@ export struct PcbDefectDetection {
 
       Row() {
         Text("调整设置")
+          .backgroundColor('#FFFFFF')
           .fontFamily('HarmonyHeiTi-Bold')
           .fontSize(18)
           .fontColor("#000000") // 使用十六进制颜色代码
@@ -178,7 +233,7 @@ export struct PcbDefectDetection {
           .width('100%');
       }
       .margin({ top: 19 })
-      .backgroundColor("#D3D3D3") // 替代 Color.LightGray
+      .backgroundColor("#F5F5F5")
       .height(33)
       .width('100%')
       .onAreaChange((oldValue, newValue) => { // 替换 'any' 为 'Area'
@@ -198,7 +253,9 @@ export struct PcbDefectDetection {
           .margin({ top: 20 });
       }
     }
-    .margin({ top: 30 });
+    .margin({ top: 30 })
+
+
   }
 
   @Builder
@@ -263,9 +320,9 @@ export struct PcbDefectDetection {
       }
       .listHeader();
 
-      ForEach(this.detectionResult!.results, (defect: Defect) => {
+      ForEach(this.detectionResult!.results, (defect: Defect, index: number) => {
         Row() {
-          Text(`${defect.id}`)
+          Text(`${index}`)
             .fontFamily('HarmonyHeiTi')
             .fontSize(16)
             .fontWeight(500)
@@ -298,15 +355,16 @@ export struct PcbDefectDetection {
 @Styles function btnDefaultStyle() {
   .margin({ top: 9 })
   // 使用十六进制颜色代码替代 Color.LightGray
-  .backgroundColor("#D3D3D3")
   .width('100%')
-  .height(33);
+  .height(40)
+  .backgroundColor('#4A90E2')
+  .borderRadius(20)
 }
 
 @Styles function listHeader() {
   .padding({ top: 10, bottom: 10 })
   // 使用十六进制颜色代码替代 Color.LightGray
-  .backgroundColor("#D3D3D3")
+  .backgroundColor('#FFFFFF')
   .margin({ top: 5 })
   .borderRadius(8)
   .shadow(ShadowStyle.OUTER_DEFAULT_XS);
@@ -327,3 +385,5 @@ export struct PcbDefectDetection {
   // 保留其他样式
   .padding({ right: 10 });
 }
+
+

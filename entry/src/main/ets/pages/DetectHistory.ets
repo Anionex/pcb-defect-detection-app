@@ -1,7 +1,8 @@
 import { DetectionResultClass } from "../model/DetectionResultsClass";
 import { DetectionResultDao } from '../model/DetectionResultDao';
 import { ToastUtils } from '../util/ToastUtils';
-import { DateUtil } from '@pura/harmony-utils';
+import { DateUtil, PickerUtil, FileUtil } from '@pura/harmony-utils';
+import type { BusinessError } from '@ohos.base';
 
 @Component
 @Preview
@@ -29,126 +30,161 @@ export struct DetectHistory {
     }
   }
 
-  printReport() {
-    console.log("报表已生成并准备打印...");
-    ToastUtils.show('报表正在打印');
+  generateCSV(): string {
+    // 添加 UTF-8 BOM
+    let csvContent = "\uFEFF";
+    csvContent += "检测编码,日期,总缺陷数\n";
+    this.detectionResultHistory.forEach(result => {
+      csvContent += `${result.id},${DateUtil.getFormatDateStr(result.date)},${result.results.length}\n`;
+    });
+    return csvContent;
+  }
+
+  async printReport() {
+    try {
+      //检测报告_${DateUtil.getFormatDateStr(DateUtil.getTodayTime())
+      const fileName = `tmp.csv`;
+      const csvContent = this.generateCSV();
+      
+      PickerUtil.saveDocument([fileName]).then((uris) => {
+        if (uris && uris.length > 0) {
+          const uri = uris[0];
+          console.log('文件将保存到:', uri);
+          
+          FileUtil.writeEasy(uri, csvContent)
+            .then(() => {
+              console.log('文件保存成功');
+              ToastUtils.show('报表已保存');
+            })
+            .catch((err:string) => {
+              console.error('写入文件失败:', err);
+              ToastUtils.show('保存报表失败');
+            });
+        } else {
+          console.error('未获取到保存路径');
+          ToastUtils.show('保存报表失败');
+        }
+      }).catch((err: BusinessError) => {
+        console.error('选择保存路径失败:', JSON.stringify(err));
+        ToastUtils.show('保存报表失败');
+      });
+    } catch (error) {
+      console.error('生成CSV文件失败:', error);
+      ToastUtils.show('生成报表失败');
+    }
   }
 
   build() {
-    Refresh({ refreshing: $$this.isRefreshing, offset: 30, friction: 70 }) {
+    Column() {
+      // 标题栏
+      this.TitleBar()
+
+      // 主要内容区域
       Scroll() {
         Column() {
-          Row() {
-            Text('检测历史页')
-              .fontFamily('HarmonyHeiTi-Bold')
-              .fontSize(24)
-              .fontColor(Color.Black)
-              .textAlign(TextAlign.Start)
-              .lineHeight(33)
-              .fontWeight(700)
-              .margin({bottom:20})
-            Blank()
-            Button('打印报表')
-              .fontSize(16)
-              .backgroundColor(Color.Blue)
-              .fontColor(Color.White)
-              .onClick(() => {
-                this.printReport();
-              })
-              .padding({
-                top: 12,
-                bottom: 12,
-                left: 24,
-                right: 24
-              })
-          }.width('100%')
-            .borderRadius(8)
-
+          // 筛选组件
           FilterComponent({
-            onFilterApplied: (startDate: string, endDate: string, minCount: number, maxCount: number) => {
+            onFilterApplied: (startDate, endDate, minCount, maxCount) => {
               this.loadDetectionResults(startDate, endDate, minCount, maxCount);
             }
           })
 
-          // 表头
-          Row() {
-            Text('检测编码')
-              .fontSize(18)
-              .fontColor(Color.Gray)
-              .width('25%')
-
-            Text('日期')
-              .fontSize(18)
-              .fontColor(Color.Gray)
-              .width('25%')
-
-            Text('总缺陷数')
-              .fontSize(18)
-              .fontColor(Color.Gray)
-              .width('25%')
-
-            Text('操作')
-              .fontSize(18)
-              .fontColor(Color.Gray)
-              .width('25%')
-              .textAlign(TextAlign.Start)
-          }
-          .padding({ top: 10, bottom: 10 })
-          .border({ width: 1, color: Color.Gray })
-
-          // 遍历检测结果并展示数据
-          ForEach(this.detectionResultHistory, (result: DetectionResultClass) => {
-            Row() {
-              Text(result.id)
-                .fontSize(16)
-                .fontColor(Color.Black)
-                .width('25%')
-
-              Text(DateUtil.getFormatDateStr(result.date))
-                .fontSize(16)
-                .fontColor(Color.Black)
-                .width('25%')
-
-              Text(`${result.results.length}`)
-                .fontSize(16)
-                .fontColor(Color.Black)
-                .width('25%')
-
-              Text('详情')
-                .fontSize(16)
-                .fontColor(Color.Blue)
-                .width('25%')
-                .onClick(() => {
-                  // 这里可以添加详情页面的跳转逻辑
-                  ToastUtils.show(`显示详情：${result.id}`);
-                })
-            }
-            .padding({ top: 10, bottom: 10 })
-            .border({ width: 1, color: Color.Gray })
-          })
+          // 检测历史列表
+          this.DetectionList()
         }
-        .padding({ top: 12, right: 16, bottom: 12, left: 16 })
+        .padding({ top: 16, bottom: 16, left: 16, right: 16 })
       }
-      .backgroundColor('#F1F3F5')
-      .align(Alignment.TopStart)
-      .constraintSize({ minHeight: '100%' })
-      .edgeEffect(EdgeEffect.Spring)
       .layoutWeight(1)
-      .scrollBar(BarState.Off)
-      .align(Alignment.TopStart)
+      .backgroundColor('#F5F5F5')
     }
-    .onStateChange((refreshStatus: RefreshStatus) => {
-      if (refreshStatus == RefreshStatus.Refresh) {
-        this.loadDetectionResults();
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#F5F5F5')
+  }
+
+  @Builder
+  TitleBar() {
+    Row() {
+      Text('检测历史')
+        .fontSize(20)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#333333')
+      Blank()
+      Button('打印报表')
+        .fontSize(16)
+        .fontColor('#FFFFFF')
+        .backgroundColor('#4A90E2')
+        .onClick(() => this.printReport())
+        .height(36)
+        .borderRadius(18)
+    }
+    .width('100%')
+    .height(56)
+    .padding({ left: 16, right: 16 })
+    .backgroundColor('#FFFFFF')
+    .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
+  }
+
+  @Builder
+  DetectionList() {
+    List() {
+      ForEach(this.detectionResultHistory, (result: DetectionResultClass) => {
+        ListItem() {
+          this.DetectionItem(result)
+        }
+        .animation({ duration: 700, curve: Curve.EaseInOut })
+      })
+    }
+    .divider({ strokeWidth: 0.5, color: '#E0E0E0', startMargin: 10, endMargin: 10 })
+  }
+
+  @Builder
+  DetectionItem(result: DetectionResultClass) {
+    Row() {
+      Column() {
+        Text(result.id)
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#333333')
+        Text(DateUtil.getFormatDateStr(result.date))
+          .fontSize(14)
+          .fontColor('#666666')
+          .margin({ top: 4 })
       }
-    })
-    .onRefreshing(() => {
-      console.log('开始刷新');
-      setTimeout(() => {
-        this.isRefreshing = false;
-        console.log('刷新完成');
-      }, 1000);
-    })
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      Column() {
+        Text(`${result.results.length}`)
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#4A90E2')
+        Text('缺陷数')
+          .fontSize(12)
+          .fontColor('#666666')
+          .margin({ top: 2 })
+      }
+      .alignItems(HorizontalAlign.Center)
+      .width(80)
+
+      Button('详情')
+        .fontSize(14)
+        .fontColor('#4A90E2')
+        .backgroundColor('transparent')
+        .borderRadius(16)
+        .borderWidth(1)
+        .borderColor('#4A90E2')
+        .height(32)
+        .onClick(() => {
+          ToastUtils.show(`显示详情：${result.id}`);
+        })
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(8)
+    .backgroundColor('#FFFFFF')
+    .shadow({ radius: 4, color: 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
+    .margin({ bottom: 4 })
   }
 }
 
@@ -158,90 +194,124 @@ struct FilterComponent {
   @State selectedEndDate: string = '';
   @State minDefects: number = 0;
   @State maxDefects: number = 10;
+  @State isExpanded: boolean = false;
   onFilterApplied: (startDate: string, endDate: string, minCount: number, maxCount: number) => void = () => {};
+
+  @Builder
+  FilterContent() {
+    Column() {
+      this.DatePicker('开始日期', this.selectedStartDate, (date) => this.selectedStartDate = date)
+      this.DatePicker('结束日期', this.selectedEndDate, (date) => this.selectedEndDate = date)
+      this.DefectCountInput()
+      this.ApplyFilterButton()
+    }
+    .padding(16)
+    .backgroundColor('#FFFFFF')
+    .borderRadius(16)
+    .animation({ duration: 300, curve: Curve.EaseInOut })
+  }
+
+  @Builder
+  DatePicker(label: string, date: string, onSelect: (date: string) => void) {
+    Row() {
+      Text(label)
+        .fontSize(16)
+        .fontColor('#333333')
+      Blank()
+      Button(date || '选择日期')
+        .fontSize(14)
+        .fontColor(date ? '#333333' : '#999999')
+        .backgroundColor('transparent')
+        .borderRadius(16)
+        .borderWidth(1)
+        .borderColor('#E0E0E0')
+        .height(32)
+        .onClick(() => {
+          DatePickerDialog.show({
+            start: new Date('2023-1-1'),
+            end: new Date(),
+            selected: date ? new Date(date) : undefined,
+            onAccept: (value: DatePickerResult) => {
+              onSelect(`${value.year}-${value.month! + 1}-${value.day}`);
+            }
+          })
+        })
+    }
+    .width('100%')
+    .margin({ bottom: 16 })
+  }
+
+  @Builder
+  DefectCountInput() {
+    Row() {
+      Text('缺陷个数:')
+        .fontSize(16)
+        .fontColor('#333333')
+      TextInput({ placeholder: '最小值', text: String(this.minDefects) })
+        .width(80)
+        .height(32)
+        .margin({ left: 8, right: 8 })
+        .onChange((value: string) => {
+          this.minDefects = parseInt(value) || 0;
+        })
+      Text('-')
+        .fontSize(16)
+        .fontColor('#333333')
+      TextInput({ placeholder: '最大值', text: String(this.maxDefects) })
+        .width(80)
+        .height(32)
+        .margin({ left: 8 })
+        .onChange((value: string) => {
+          this.maxDefects = parseInt(value) || 10;
+        })
+    }
+    .width('100%')
+    .margin({ bottom: 16 })
+  }
+
+  @Builder
+  ApplyFilterButton() {
+    Button('应用筛选')
+      .width('100%')
+      .height(40)
+      .fontSize(16)
+      .fontColor('#FFFFFF')
+      .backgroundColor('#4A90E2')
+      .borderRadius(20)
+      .onClick(() => {
+        this.onFilterApplied(this.selectedStartDate, this.selectedEndDate, this.minDefects, this.maxDefects);
+      })
+  }
 
   build() {
     Column() {
-      Text('筛选条件')
-        .fontSize(18)
-        .fontColor(Color.Black)
-        .margin({ bottom: 8 })
-
       Row() {
-        Text('开始日期:')
-          .fontSize(16)
-          .fontColor(Color.Gray)
-
-        Button(this.selectedStartDate || '选择开始日期')
-          .onClick(() => {
-            DatePickerDialog.show({
-              start: new Date('2023-1-1'),
-              end: new Date(),
-              selected: this.selectedStartDate ? new Date(this.selectedStartDate) : undefined,
-              onAccept: (value: DatePickerResult) => {
-                this.selectedStartDate = `${value.year}-${value.month! + 1}-${value.day}`;
-              }
+        Text('筛选条件')
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#333333')
+        Blank()
+        Toggle({ type: ToggleType.Switch, isOn: this.isExpanded })
+          .onChange((isOn: boolean) => {
+            animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+              this.isExpanded = isOn;
             })
           })
-          .margin({ left: 8 })
-          .width('70%')
       }
-      .margin({ bottom: 16 })
+      .width('100%')
+      .padding({ top: 16, bottom: 16, left: 16, right: 16 })
+      .backgroundColor('#FFFFFF')
 
-      Row() {
-        Text('结束日期:')
-          .fontSize(16)
-          .fontColor(Color.Gray)
 
-        Button(this.selectedEndDate || '选择结束日期')
-          .onClick(() => {
-            DatePickerDialog.show({
-              start: new Date('1970-1-1'),
-              end: new Date(),
-              selected: this.selectedEndDate ? new Date(this.selectedEndDate) : undefined,
-              onAccept: (value: DatePickerResult) => {
-                this.selectedEndDate = `${value.year}-${value.month! + 1}-${value.day}`;
-              }
-            })
-          })
-          .margin({ left: 8 })
-          .width('70%')
+      if (this.isExpanded) {
+        this.FilterContent()
       }
-      .margin({ bottom: 16 })
-
-      Row() {
-        Text('缺陷个数:')
-          .fontSize(16)
-          .fontColor(Color.Gray)
-
-        TextInput({ placeholder: '最小', text: String(this.minDefects) })
-          .onChange((value: string) => {
-            this.minDefects = parseInt(value) || 0;
-          })
-          .margin({ left: 8 })
-          .width('30%')
-
-        Text('-')
-          .fontSize(16)
-          .margin({ left: 8, right: 8 })
-
-        TextInput({ placeholder: '最大', text: String(this.maxDefects) })
-          .onChange((value: string) => {
-            this.maxDefects = parseInt(value) || 10;
-          })
-          .width('30%')
-      }
-      .margin({ bottom: 16 })
-
-      Button('应用筛选')
-        .fontSize(16)
-        .backgroundColor(Color.Blue)
-        .fontColor(Color.White)
-        .onClick(() => {
-          this.onFilterApplied(this.selectedStartDate, this.selectedEndDate, this.minDefects, this.maxDefects);
-        })
-        .padding({ top: 12, bottom: 12, left: 24, right: 24 })
-        .borderRadius(8)
     }
+    .backgroundColor('#FFFFFF')
+    .borderRadius(16)
+    .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetY: 4 })
+    .margin({ bottom: 16 })
   }
 }
+
+
