@@ -304,4 +304,31 @@ export class DetectionResultDao {
     console.info('按缺陷数量获取检测结果');
     return this.getFilteredResults(undefined, undefined, minDefects, maxDefects);
   }
+
+  async deleteById(id: string): Promise<boolean> {
+    console.info('正在删除ID为', id, '的检测结果');
+    try {
+      // 首先删除关联的缺陷记录
+      const defectPredicates = new relationalStore.RdbPredicates('DEFECT');
+      defectPredicates.equalTo('DETECTION_RESULT_ID', id);
+      await this.store.delete(defectPredicates);
+      console.info('已删除与检测结果关联的缺陷记录');
+
+      // 然后删除检测结果记录
+      const resultPredicates = new relationalStore.RdbPredicates('DETECTION_RESULT');
+      resultPredicates.equalTo('ID', id);
+      const deletedRows = await this.store.delete(resultPredicates);
+      
+      if (deletedRows > 0) {
+        console.info('成功删除ID为', id, '的检测结果');
+        return true;
+      } else {
+        console.info('未找到ID为', id, '的检测结果');
+        return false;
+      }
+    } catch (error) {
+      console.error('删除检测结果时出错:', error);
+      return false;
+    }
+  }
 }

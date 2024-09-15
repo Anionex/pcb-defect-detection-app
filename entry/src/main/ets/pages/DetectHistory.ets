@@ -74,6 +74,22 @@ export struct DetectHistory {
     }
   }
 
+  async deleteDetectionResult(id: string) {
+    try {
+      const success = await this.detectionResultDao.deleteById(id);
+      if (success) {
+        ToastUtils.show('记录删除成功');
+        // 重新加载数据以更新列表
+        this.loadDetectionResults();
+      } else {
+        ToastUtils.show('记录删除失败');
+      }
+    } catch (error) {
+      console.error('删除记录时出错:', error);
+      ToastUtils.show('删除记录时发生错误');
+    }
+  }
+
   build() {
     Column() {
       // 标题栏
@@ -177,6 +193,34 @@ export struct DetectHistory {
         .height(32)
         .onClick(() => {
           ToastUtils.show(`显示详情：${result.id}`);
+        })
+
+      Button('删除')
+        .fontSize(14)
+        .fontColor('#FF4D4F')
+        .backgroundColor('transparent')
+        .borderRadius(16)
+        .borderWidth(1)
+        .borderColor('#FF4D4F')
+        .height(32)
+        .margin({ left: 8 })
+        .onClick(() => {
+          AlertDialog.show({
+            title: '确认删除',
+            message: '您确定要删除这条记录吗？',
+            primaryButton: {
+              value: '取消',
+              action: () => {
+                console.info('取消删除');
+              }
+            },
+            secondaryButton: {
+              value: '删除',
+              action: () => {
+                this.deleteDetectionResult(result.id);
+              }
+            }
+          })
         })
     }
     .width('100%')
