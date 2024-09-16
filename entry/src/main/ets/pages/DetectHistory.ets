@@ -31,31 +31,50 @@ export struct DetectHistory {
         this.TitleBar()
 
         // 主要内容区域
-        Scroll() {
-          Column() {
-            // 筛选组件
-            FilterComponent({
-              onFilterApplied: (startDate, endDate, minCount, maxCount) => {
-                this.loadDetectionResults(startDate, endDate, minCount, maxCount);
-              }
-            })
+        Refresh({ refreshing: this.isRefreshing, offset: 30, friction: 70 }) {
+          Stack({ alignContent: Alignment.Top }) {
+            Scroll() {
+              Column() {
+                // 筛选组件
+                FilterComponent({
+                  onFilterApplied: (startDate, endDate, minCount, maxCount) => {
+                    this.loadDetectionResults(startDate, endDate, minCount, maxCount);
+                  }
+                })
 
-            // 检测历史列表
-            this.DetectionList()
+                // 检测历史列表
+                this.DetectionList()
+              }
+              .padding({ top: 16, bottom: 16, left: 16, right: 16 })
+            }
+            .constraintSize({ minHeight: '100%' })
+            .edgeEffect(EdgeEffect.Spring)
+            .scrollBar(BarState.Off);
           }
-          .padding({ top: 16, bottom: 16, left: 16, right: 16 })
         }
-        .layoutWeight(1)
-        .backgroundColor('#F5F5F5')
+        .onStateChange((refreshStatus: RefreshStatus) => {
+          if (refreshStatus == RefreshStatus.Refresh) {
+            this.loadDetectionResults();
+          }
+        })
+        .onRefreshing(() => {
+          console.log('开始刷新');
+          setTimeout(() => {
+            this.isRefreshing = false;
+            console.log('刷新完成');
+          }, 1000)
+        })
       }
       .width('100%')
-      .height('100%')
       .backgroundColor('#F5F5F5')
+      //设置从页面顶部往下排列组件
+
     }
     .mode(NavigationMode.Stack)
     .hideTitleBar(true)
     .navDestination(this.PageMap)
     .navBarWidth(288) //这个bar是什么东西？
+
   }
 
   @Builder
@@ -176,6 +195,7 @@ export struct DetectHistory {
 
   async loadDetectionResults(startDate?: string, endDate?: string, minDefects?: number, maxDefects?: number) {
     try {
+      this.isRefreshing = true; // 开始刷新
       if (startDate || endDate || minDefects !== undefined || maxDefects !== undefined) {
         const start = startDate ? new Date(startDate) : undefined;
         const end = endDate ? new Date(endDate) : undefined;
@@ -183,10 +203,21 @@ export struct DetectHistory {
       } else {
         this.detectionResultHistory = await this.detectionResultDao.getAll();
       }
+      // 同步数据库操作可以在这里添加
+      await this.syncWithDatabase();
     } catch (error) {
       console.error("加载检测历史失败:", error);
       ToastUtils.show('加载检测历史失败');
+    } finally {
+      this.isRefreshing = false; // 结束刷新
     }
+  }
+
+  async syncWithDatabase() {
+    // 在这里实现与数据库的同步逻辑
+    // 例如:
+    // await this.detectionResultDao.syncWithRemoteDatabase();
+    console.log('数据已与数据库同步');
   }
 
   generateCSV(): string {

@@ -41,10 +41,7 @@ struct Index {
         $r("app.media.circuit_board_icon_unselected")))
 
       TabContent() {
-        DetectHistory().onVisibleAreaChange([0.0, 1.0], (isVisible: boolean, currentRatio: number) => {
-          console.info('MyPage isVisible: ' + isVisible + ', currentRatio:' + currentRatio)
-
-        })
+        DetectHistory()
       }
       .tabBar(this.tabBarBuilder('检测历史', 1, $r("app.media.clock_history_selected"),
         $r("app.media.clock_history")))

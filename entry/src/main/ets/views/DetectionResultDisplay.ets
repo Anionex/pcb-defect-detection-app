@@ -5,43 +5,43 @@ import {ImageUtil, LogUtil, getPixelMapSize, getPixelMapSizeSync} from "../util/
 export struct DetectionResultDisplay {
   @Prop detectionResult: DetectionResultClass;
   private srcImgPath: string | undefined;
-  private pixWidth: number | undefined;
-  private pixHeight: number | undefined;
+  private pixWidth: number = 0;
+  private pixHeight: number = 0;
   private scaleNum: number = 1;
-  private scaledHeight: number = 0;
+  @State scaledHeight: number = 0;
   private defectColorMapper: DefectColorMapper = new DefectColorMapper();
-  @State windowWidth: number | undefined = undefined
+  private windowWidth: number | undefined
 
   build() {
       Column() {
         Blank().width('100%').height(1)
-          .onSizeChange(async (oldValue, newValue) => {
+          .onSizeChange( (oldValue, newValue) => {
             this.windowWidth = Number(newValue.width);
 
             // 求scaleNum和scaledHeight
             this.srcImgPath = this.detectionResult.imagePath!
-            console.info( "display srcImgPath:" + this.srcImgPath)
-            let imageSize: Array<number> = await getPixelMapSize(this.srcImgPath!)
+            console.info( "srcImgPath:" + this.srcImgPath)
+            let imageSize: Array<number> =  getPixelMapSizeSync(this.srcImgPath!)
             this.pixWidth = imageSize[0];
             this.pixHeight = imageSize[1];
             console.log( "pixWidth:" + this.pixWidth + "  pixHeight:" + this.pixHeight)
 
             this.scaleNum = this.windowWidth / this.pixWidth!;
-            this.scaledHeight = this.pixHeight! * this.scaleNum;
-            console.log( "scaleNum:" + this.scaleNum + "  scaledHeight:" + this.scaledHeight)
+            this.scaledHeight = this.pixHeight! * this.scaleNum; //更新之后会立即渲染shape
+            console.log( "display windowWidth:" + this.windowWidth + "  scaledHeight:" + this.scaledHeight)
 
           });
-        if(this.windowWidth){
+        if(this.scaledHeight){
           Shape() {
             Rect().width(1).height(1)
               .offset({ x: this.windowWidth, y: this.scaledHeight });
 
-            ForEach(this.detectionResult.results, (defect: DefectClass) => {
+            ForEach(this.detectionResult!.results, (defect: DefectClass) => {
               Text(`${defect.cls}:${defect.conf!.toFixed(2)}`)
                 .offset({ x: defect.x1! * this.scaleNum, y: defect.y1! * this.scaleNum - 10 })
                 .fontColor(this.defectColorMapper.getColor(defect.cls))
-                .fontSize(8)
-                .fontWeight(400)
+                .fontSize(8) // 添加字体大小
+                .fontWeight(400) // 添加字体粗细
 
               Rect()
                 .width((defect.x2! - defect.x1!) * this.scaleNum)
@@ -52,7 +52,7 @@ export struct DetectionResultDisplay {
                 .fillOpacity(0);
             });
           }
-          .backgroundImage(this.detectionResult.imagePath)
+          .backgroundImage(this.srcImgPath)
           .backgroundImageSize(ImageSize.Contain)
           .width("100%")
           .shadow(ShadowStyle.OUTER_DEFAULT_XS);
