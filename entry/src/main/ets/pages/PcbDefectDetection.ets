@@ -1,30 +1,19 @@
-import { Defect, DetectionResultClass, RawDetectionResultClass, DefectClass } from "../model/DetectionResultsClass";
+import { DefectClass, DetectionResultClass, RawDetectionResultClass, DefectNameClass } from "../model/DetectionResultsClasses";
 import { PhotoPickerUtils } from '../util/PhotoPickerUtils';
 import { ToastUtils } from '../util/ToastUtils';
 import { sendDetectRequest, parseDetectionResult } from '../util/DetectionUtils';
-import { ImageUtil, LogUtil } from '@pura/harmony-utils';
+import {ImageUtil, LogUtil, getPixelMapSize} from "../util/ImageUtils"
 import { DetectionResultDao } from '../model/DetectionResultDao';
+import {DetectionResultDisplay} from "../views/DetectionResultDisplay"
 import { BusinessError } from '@kit.BasicServicesKit';
-
-
-class DefectColorMapper {
-  colorMap: Map<string, string> = new Map([
-    ['Mouse_bite', "#0000FF"], // Blue
-    ['Open_circuit', "#FFC0CB"], // Pink
-    ['Short', "#FF0000"], // Red
-    ['Spur', "#FFA500"], // Orange
-    ['Spurious_copper', "#FFFF00"] // Yellow
-  ]);
-
-  getColor(cls: string): string {
-    return this.colorMap.get(cls) || "#FF0000"; // 默认颜色为红色
-  }
-}
-
+import { DefectColorMapper } from "../model/DefectColorMapper"
 
 const STEP_SIZE = 608
 const WINDOW_PROCESS_TIME = 350
 const OTHER_DELAYS = 0
+
+AppStorage.setOrCreate('maxResultNum', 0)
+
 
 @Component
 export struct PcbDefectDetection {
@@ -61,10 +50,9 @@ export struct PcbDefectDetection {
         );
       });
       this.srcImgPath = uri;
-      const pixelMap = await ImageUtil.createImageSource(this.srcImgPath).createPixelMap({ sampleSize: 1, editable: true });
-      const imageInfo = await pixelMap.getImageInfo();
-      this.pixWidth = imageInfo.size.width;
-      this.pixHeight = imageInfo.size.height;
+      let imageSize: Array<number> = await getPixelMapSize(this.srcImgPath)
+      this.pixWidth = imageSize[0];
+      this.pixHeight = imageSize[1];
       this.scaleNum = this.windowWidth / this.pixWidth;
       this.scaledHeight = this.pixHeight * this.scaleNum;
       this.detectionResult = null
@@ -102,7 +90,10 @@ export struct PcbDefectDetection {
           else resolve(res!);
         });
       });
-      this.detectionResult = await parseDetectionResult(JSON.parse(result) as RawDetectionResultClass);
+      this.detectionResult = await parseDetectionResult(
+        JSON.parse(result) as RawDetectionResultClass,
+        this.srcImgPath
+      );
       await this.detectionResultDao.insert(this.detectionResult);
       LogUtil.info('PcbDefectDetection', 'Detection result saved successfully');
     } catch (error) {
@@ -236,14 +227,17 @@ export struct PcbDefectDetection {
       .backgroundColor("#F5F5F5")
       .height(33)
       .width('100%')
-      .onAreaChange((oldValue, newValue) => { // 替换 'any' 为 'Area'
+      .onAreaChange((oldValue, newValue) => {
         this.windowWidth = Number(newValue.width);
       });
 
       if (this.isLoading) {
         Progress({ value: this.progress, total: 100, type: ProgressType.Linear }).width(200).height(50)
       } else if (this.detectionResult) {
-        this.renderDetectionResult();
+        DetectionResultDisplay({
+          detectionResult: this.detectionResult,
+        })
+        this.DefectResultList();
       } else {
         Text("暂无检测结果")
           .fontFamily('HarmonyHeiTi')
@@ -258,37 +252,6 @@ export struct PcbDefectDetection {
 
   }
 
-  @Builder
-  renderDetectionResult() {
-    Column() {
-      Shape() {
-        Rect().width(1).height(1)
-          .offset({ x: this.windowWidth, y: this.scaledHeight });
-
-        ForEach(this.detectionResult!.results, (defect: Defect) => {
-          Text(`${defect.cls}:${defect.conf!.toFixed(2)}`)
-            .offset({ x: defect.x1! * this.scaleNum, y: defect.y1! * this.scaleNum - 10 })
-            .fontColor(this.defectColorMapper.getColor(defect.cls))
-            .fontSize(8) // 添加字体大小
-            .fontWeight(400) // 添加字体粗细
-
-          Rect()
-            .width((defect.x2! - defect.x1!) * this.scaleNum)
-            .height((defect.y2! - defect.y1!) * this.scaleNum)
-            .offset({ x: defect.x1! * this.scaleNum, y: defect.y1! * this.scaleNum })
-            .stroke(this.defectColorMapper.getColor(defect.cls))
-            .strokeWidth(0.5)
-            .fillOpacity(0);
-        });
-      }
-      .backgroundImage(this.srcImgPath)
-      .backgroundImageSize(ImageSize.Contain)
-      .width("100%")
-      .shadow(ShadowStyle.OUTER_DEFAULT_XS);
-
-      this.DefectResultList();
-    }
-  }
 
   @Builder
   DefectResultList() {
@@ -320,7 +283,7 @@ export struct PcbDefectDetection {
       }
       .listHeader();
 
-      ForEach(this.detectionResult!.results, (defect: Defect, index: number) => {
+      ForEach(this.detectionResult!.results, (defect: DefectClass, index: number) => {
         Row() {
           Text(`${index}`)
             .fontFamily('HarmonyHeiTi')
@@ -347,10 +310,12 @@ export struct PcbDefectDetection {
             .width('15%');
         }
         .listItem();
-      }, (defect: Defect) => defect.id);
+      }, (defect: DefectClass) => defect.id);
     }
   }
 }
+
+
 
 @Styles function btnDefaultStyle() {
   .margin({ top: 9 })

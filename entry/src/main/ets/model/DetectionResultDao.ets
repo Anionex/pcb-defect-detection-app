@@ -1,5 +1,5 @@
 import { relationalStore } from '@kit.ArkData';
-import { DefectClass, Defect, DetectionResultClass } from '../model/DetectionResultsClass';
+import { DefectNameClass, DefectClass, DetectionResultClass } from './DetectionResultsClasses';
 import { DatabaseManager } from './DatabaseManager';
 
 // 定义 ValuesBucket 类型
@@ -110,9 +110,9 @@ export class DetectionResultDao {
 
         if (defectResultSet) {
           while (defectResultSet.goToNextRow()) {
-            const defect = new Defect(
+            const defect = new DefectClass(
               defectResultSet.getString(defectResultSet.getColumnIndex('ID')),
-              defectResultSet.getString(defectResultSet.getColumnIndex('CLASS')) as DefectClass,
+              defectResultSet.getString(defectResultSet.getColumnIndex('CLASS')) as DefectNameClass,
               defectResultSet.getDouble(defectResultSet.getColumnIndex('Y1')),
               defectResultSet.getDouble(defectResultSet.getColumnIndex('X1')),
               defectResultSet.getDouble(defectResultSet.getColumnIndex('Y2')),
@@ -292,6 +292,35 @@ export class DetectionResultDao {
     } catch (error) {
       console.error('获取筛选后的检测结果失败:', error);
       return [];
+    }
+  }
+
+  async getNewID(): Promise<string> {
+    console.info('正在生成新的检测结果ID');
+    const predicates = new relationalStore.RdbPredicates('DETECTION_RESULT');
+    predicates.orderByDesc('ID');
+    predicates.limitAs(1);
+
+    try {
+      const resultSet = await safeQuery(this.store, predicates, ['ID']);
+      if (resultSet && resultSet.rowCount > 0) {
+        resultSet.goToFirstRow();
+        const lastID = resultSet.getString(resultSet.getColumnIndex('ID'));
+        resultSet.close();
+
+        const lastNumber = parseInt(lastID.split('_')[1]);
+        const newNumber = lastNumber + 1;
+        const newID = `result_${newNumber}`;
+
+        console.info('生成的新ID:', newID);
+        return newID;
+      } else {
+        console.info('数据库为空,返回初始ID');
+        return 'result_1';
+      }
+    } catch (error) {
+      console.error('生成新ID时出错:', error);
+      return 'result_error';
     }
   }
 

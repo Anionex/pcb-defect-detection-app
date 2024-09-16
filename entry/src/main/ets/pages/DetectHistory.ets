@@ -1,121 +1,61 @@
-import { DetectionResultClass } from "../model/DetectionResultsClass";
+import { DetectionResultClass } from "../model/DetectionResultsClasses";
 import { DetectionResultDao } from '../model/DetectionResultDao';
 import { ToastUtils } from '../util/ToastUtils';
 import { DateUtil, PickerUtil, FileUtil } from '@pura/harmony-utils';
 import type { BusinessError } from '@ohos.base';
-
+import {DetectionDetailPage} from "./DetectionDetailPage"
 @Component
 @Preview
 export struct DetectHistory {
   @State detectionResultHistory: Array<DetectionResultClass> = [];
   @State isRefreshing: boolean = false;
   private detectionResultDao: DetectionResultDao = new DetectionResultDao();
+  @Provide('detectHistoryPageStack') detectHistoryPageStack: NavPathStack = new NavPathStack();
+  @State currentHistoryIndex: number = -1;
 
   aboutToAppear() {
     this.loadDetectionResults();
   }
 
-  async loadDetectionResults(startDate?: string, endDate?: string, minDefects?: number, maxDefects?: number) {
-    try {
-      if (startDate || endDate || minDefects !== undefined || maxDefects !== undefined) {
-        const start = startDate ? new Date(startDate) : undefined;
-        const end = endDate ? new Date(endDate) : undefined;
-        this.detectionResultHistory = await this.detectionResultDao.getFilteredResults(start, end, minDefects, maxDefects);
-      } else {
-        this.detectionResultHistory = await this.detectionResultDao.getAll();
-      }
-    } catch (error) {
-      console.error("加载检测历史失败:", error);
-      ToastUtils.show('加载检测历史失败');
-    }
-  }
-
-  generateCSV(): string {
-    // 添加 UTF-8 BOM
-    let csvContent = "\uFEFF";
-    csvContent += "检测编码,日期,总缺陷数\n";
-    this.detectionResultHistory.forEach(result => {
-      csvContent += `${result.id},${DateUtil.getFormatDateStr(result.date)},${result.results.length}\n`;
-    });
-    return csvContent;
-  }
-
-  async printReport() {
-    try {
-      //检测报告_${DateUtil.getFormatDateStr(DateUtil.getTodayTime())
-      const fileName = `tmp.csv`;
-      const csvContent = this.generateCSV();
-      
-      PickerUtil.saveDocument([fileName]).then((uris) => {
-        if (uris && uris.length > 0) {
-          const uri = uris[0];
-          console.log('文件将保存到:', uri);
-          
-          FileUtil.writeEasy(uri, csvContent)
-            .then(() => {
-              console.log('文件保存成功');
-              ToastUtils.show('报表已保存');
-            })
-            .catch((err:string) => {
-              console.error('写入文件失败:', err);
-              ToastUtils.show('保存报表失败');
-            });
-        } else {
-          console.error('未获取到保存路径');
-          ToastUtils.show('保存报表失败');
-        }
-      }).catch((err: BusinessError) => {
-        console.error('选择保存路径失败:', JSON.stringify(err));
-        ToastUtils.show('保存报表失败');
-      });
-    } catch (error) {
-      console.error('生成CSV文件失败:', error);
-      ToastUtils.show('生成报表失败');
-    }
-  }
-
-  async deleteDetectionResult(id: string) {
-    try {
-      const success = await this.detectionResultDao.deleteById(id);
-      if (success) {
-        ToastUtils.show('记录删除成功');
-        // 重新加载数据以更新列表
-        this.loadDetectionResults();
-      } else {
-        ToastUtils.show('记录删除失败');
-      }
-    } catch (error) {
-      console.error('删除记录时出错:', error);
-      ToastUtils.show('删除记录时发生错误');
+  @Builder
+  PageMap(name: string) {
+    if (name === 'DetectionDetailPage') {
+      DetectionDetailPage({result: this.detectionResultHistory[this.currentHistoryIndex]});
     }
   }
 
   build() {
-    Column() {
-      // 标题栏
-      this.TitleBar()
+    Navigation(this.detectHistoryPageStack){
+      Column() {
+        // 标题栏
+        this.TitleBar()
 
-      // 主要内容区域
-      Scroll() {
-        Column() {
-          // 筛选组件
-          FilterComponent({
-            onFilterApplied: (startDate, endDate, minCount, maxCount) => {
-              this.loadDetectionResults(startDate, endDate, minCount, maxCount);
-            }
-          })
+        // 主要内容区域
+        Scroll() {
+          Column() {
+            // 筛选组件
+            FilterComponent({
+              onFilterApplied: (startDate, endDate, minCount, maxCount) => {
+                this.loadDetectionResults(startDate, endDate, minCount, maxCount);
+              }
+            })
 
-          // 检测历史列表
-          this.DetectionList()
+            // 检测历史列表
+            this.DetectionList()
+          }
+          .padding({ top: 16, bottom: 16, left: 16, right: 16 })
         }
-        .padding({ top: 16, bottom: 16, left: 16, right: 16 })
+        .layoutWeight(1)
+        .backgroundColor('#F5F5F5')
       }
-      .layoutWeight(1)
+      .width('100%')
+      .height('100%')
       .backgroundColor('#F5F5F5')
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor('#F5F5F5')
+    .mode(NavigationMode.Stack)
+    .hideTitleBar(true)
+    .navDestination(this.PageMap)
+    .navBarWidth(288) //这个bar是什么东西？
   }
 
   @Builder
@@ -144,9 +84,9 @@ export struct DetectHistory {
   @Builder
   DetectionList() {
     List() {
-      ForEach(this.detectionResultHistory, (result: DetectionResultClass) => {
+      ForEach(this.detectionResultHistory, (result: DetectionResultClass, index: number) => {
         ListItem() {
-          this.DetectionItem(result)
+          this.DetectionItem(result, index)
         }
         .animation({ duration: 700, curve: Curve.EaseInOut })
       })
@@ -155,7 +95,7 @@ export struct DetectHistory {
   }
 
   @Builder
-  DetectionItem(result: DetectionResultClass) {
+  DetectionItem(result: DetectionResultClass, index: number) { //此处的index为显示次序而不是result id
     Row() {
       Column() {
         Text(result.id)
@@ -193,6 +133,8 @@ export struct DetectHistory {
         .height(32)
         .onClick(() => {
           ToastUtils.show(`显示详情：${result.id}`);
+          this.currentHistoryIndex = index
+          this.detectHistoryPageStack.replacePath({ name: 'DetectionDetailPage' });
         })
 
       Button('删除')
@@ -229,6 +171,82 @@ export struct DetectHistory {
     .backgroundColor('#FFFFFF')
     .shadow({ radius: 4, color: 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
     .margin({ bottom: 4 })
+  }
+
+
+  async loadDetectionResults(startDate?: string, endDate?: string, minDefects?: number, maxDefects?: number) {
+    try {
+      if (startDate || endDate || minDefects !== undefined || maxDefects !== undefined) {
+        const start = startDate ? new Date(startDate) : undefined;
+        const end = endDate ? new Date(endDate) : undefined;
+        this.detectionResultHistory = await this.detectionResultDao.getFilteredResults(start, end, minDefects, maxDefects);
+      } else {
+        this.detectionResultHistory = await this.detectionResultDao.getAll();
+      }
+    } catch (error) {
+      console.error("加载检测历史失败:", error);
+      ToastUtils.show('加载检测历史失败');
+    }
+  }
+
+  generateCSV(): string {
+    // 添加 UTF-8 BOM
+    let csvContent = "\uFEFF";
+    csvContent += "检测编码,日期,总缺陷数\n";
+    this.detectionResultHistory.forEach(result => {
+      csvContent += `${result.id},${DateUtil.getFormatDateStr(result.date)},${result.results.length}\n`;
+    });
+    return csvContent;
+  }
+
+  async printReport() {
+    try {
+      //检测报告_${DateUtil.getFormatDateStr(DateUtil.getTodayTime())
+      const fileName = `tmp.csv`;
+      const csvContent = this.generateCSV();
+
+      PickerUtil.saveDocument([fileName]).then((uris) => {
+        if (uris && uris.length > 0) {
+          const uri = uris[0];
+          console.log('文件将保存到:', uri);
+
+          FileUtil.writeEasy(uri, csvContent)
+            .then(() => {
+              console.log('文件保存成功');
+              ToastUtils.show('报表已保存');
+            })
+            .catch((err:string) => {
+              console.error('写入文件失败:', err);
+              ToastUtils.show('保存报表失败');
+            });
+        } else {
+          console.error('未获取到保存路径');
+          ToastUtils.show('保存报表失败');
+        }
+      }).catch((err: BusinessError) => {
+        console.error('选择保存路径失败:', JSON.stringify(err));
+        ToastUtils.show('保存报表失败');
+      });
+    } catch (error) {
+      console.error('生成CSV文件失败:', error);
+      ToastUtils.show('生成报表失败');
+    }
+  }
+
+  async deleteDetectionResult(id: string) {
+    try {
+      const success = await this.detectionResultDao.deleteById(id);
+      if (success) {
+        ToastUtils.show('记录删除成功');
+        // 重新加载数据以更新列表
+        this.loadDetectionResults();
+      } else {
+        ToastUtils.show('记录删除失败');
+      }
+    } catch (error) {
+      console.error('删除记录时出错:', error);
+      ToastUtils.show('删除记录时发生错误');
+    }
   }
 }
 

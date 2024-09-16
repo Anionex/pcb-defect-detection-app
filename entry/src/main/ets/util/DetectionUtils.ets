@@ -1,6 +1,6 @@
 import axios,{FormData, AxiosResponse, AxiosProgressEvent, AxiosError} from '@ohos/axios'
 import { fileIo as fs } from '@kit.CoreFileKit';
-import { RawDetectionResultClass, DetectionResultClass, DefectClass, Defect} from "../model/DetectionResultsClass"
+import { RawDetectionResultClass, DetectionResultClass, DefectNameClass, DefectClass} from "../model/DetectionResultsClasses"
 import image from '@ohos.multimedia.image';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { DetectionResultDao } from '../model/DetectionResultDao'; // 确保路径正确
@@ -102,20 +102,18 @@ export async function sendDetectRequest(filePath: string, callback?: (result: st
  * @param responseData 原始检测结果数据。
  * @returns 解析后的 DetectionResultClass 实例。
  */
-export async function parseDetectionResult(responseData: RawDetectionResultClass): Promise<DetectionResultClass> {
+export async function parseDetectionResult(responseData: RawDetectionResultClass, srcImgPath: string): Promise<DetectionResultClass> {
   const detectionClasses: string[] = responseData.detection_classes;
   const detectionBoxes = responseData.detection_boxes;
   const detectionScores = responseData.detection_scores;
 
   // 用于存储所有缺陷的数组
-  const defects: Defect[] = [];
+  const defects: DefectClass[] = [];
 
   // 实例化 DetectionResultDao
   const dao = new DetectionResultDao();
 
-  // 获取当前数据库中的记录数量
-  const currentCount = await dao.getCount();
-  const newId = `result_${currentCount + 1}`;
+  const newId = await dao.getNewID();
 
   // 遍历所有的检测结果，并生成 Defect 对象
   for (let i = 0; i < detectionClasses.length; i++) {
@@ -124,29 +122,29 @@ export async function parseDetectionResult(responseData: RawDetectionResultClass
     const score = detectionScores[i];
 
     // 将 string 类型的检测类别转换为 DefectClass 枚举
-    let cls: DefectClass;
+    let cls: DefectNameClass;
     switch (clsStr) {
       case 'Mouse_bite':
-        cls = DefectClass.MOUSE_BITE;
+        cls = DefectNameClass.MOUSE_BITE;
         break;
       case 'Open_circuit':
-        cls = DefectClass.OPEN_CIRCUIT;
+        cls = DefectNameClass.OPEN_CIRCUIT;
         break;
       case 'Short':
-        cls = DefectClass.SHORT;
+        cls = DefectNameClass.SHORT;
         break;
       case 'Spur':
-        cls = DefectClass.SPUR;
+        cls = DefectNameClass.SPUR;
         break;
       case 'Spurious_copper':
-        cls = DefectClass.SPURIOUS_COPPER;
+        cls = DefectNameClass.SPURIOUS_COPPER;
         break;
       default:
         throw new Error(`未知的缺陷类型: ${clsStr}`);
     }
 
     // 创建 Defect 实例，使用 `${newId}_defect_${i}` 作为唯一 id
-    const defect = new Defect(
+    const defect = new DefectClass(
       `${newId}_defect_${i}`, // 确保 Defect 的 id 唯一
       cls,                    // 缺陷类型
       box[0],                 // x1
@@ -164,7 +162,7 @@ export async function parseDetectionResult(responseData: RawDetectionResultClass
   const detectionResult = new DetectionResultClass(
     newId,                   // 动态生成的 id
     new Date(),              // 当前日期
-    '/path/to/image.jpg',    // todo 图片路径
+    srcImgPath,              // 图片路径
     defects,                 // 所有的 Defect 对象
     '暂无'                   // 详情描述/备注
   );

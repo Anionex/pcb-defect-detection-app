@@ -14,7 +14,7 @@ export class RawDetectionResultClass {
   }
 }
 
-export enum DefectClass {
+export enum DefectNameClass {
   MOUSE_BITE = 'Mouse_bite',
   OPEN_CIRCUIT = 'Open_circuit',
   SHORT = 'Short',
@@ -22,9 +22,9 @@ export enum DefectClass {
   SPURIOUS_COPPER = 'Spurious_copper'
 }
 
-export class Defect {
+export class DefectClass {
   id: string;
-  cls: DefectClass;
+  cls: DefectNameClass;
   y1: number | null; // 适应api的格式
   x1: number | null;
   y2: number | null;
@@ -34,7 +34,7 @@ export class Defect {
   // 构造函数，接收所有属性并初始化
   constructor(
     id: string,
-    cls: DefectClass,
+    cls: DefectNameClass,
     y1: number | null = null,
     x1: number | null = null,
     y2: number | null = null,
@@ -55,7 +55,7 @@ export class DetectionResultClass {
   id: string;
   date: Date;
   imagePath: string | null;
-  results: Defect[];
+  results: DefectClass[];
   details: string | null;
 
   // 构造函数，接收部分属性并初始化
@@ -63,7 +63,7 @@ export class DetectionResultClass {
     id: string,
     date: Date = new Date(),  // 默认为当前日期
     imagePath: string | null = null,
-    results: Defect[] = [],   // 默认为空数组
+    results: DefectClass[] = [],   // 默认为空数组
     details: string | null = null
   ) {
     this.id = id;
