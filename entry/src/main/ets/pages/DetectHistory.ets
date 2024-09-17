@@ -12,16 +12,11 @@ export struct DetectHistory {
   private detectionResultDao: DetectionResultDao = new DetectionResultDao();
   @Provide('detectHistoryPageStack') detectHistoryPageStack: NavPathStack = new NavPathStack();
   @State currentHistoryIndex: number = -1;
+  @State selectedItems: Set<string> = new Set()
+  @State isSelectMode: boolean = false
 
   aboutToAppear() {
     this.loadDetectionResults();
-  }
-
-  @Builder
-  PageMap(name: string) {
-    if (name === 'DetectionDetailPage') {
-      DetectionDetailPage({result: this.detectionResultHistory[this.currentHistoryIndex]});
-    }
   }
 
   build() {
@@ -32,7 +27,7 @@ export struct DetectHistory {
 
         // 主要内容区域
         Refresh({ refreshing: this.isRefreshing, offset: 30, friction: 70 }) {
-          Stack({ alignContent: Alignment.Top }) {
+          Stack() {
             Scroll() {
               Column() {
                 // 筛选组件
@@ -41,6 +36,9 @@ export struct DetectHistory {
                     this.loadDetectionResults(startDate, endDate, minCount, maxCount);
                   }
                 })
+
+                // 多选操作栏
+                this.MultiSelectBar()
 
                 // 检测历史列表
                 this.DetectionList()
@@ -75,6 +73,13 @@ export struct DetectHistory {
     .navDestination(this.PageMap)
     .navBarWidth(288) //这个bar是什么东西？
 
+  }
+
+  @Builder
+  PageMap(name: string) {
+    if (name === 'DetectionDetailPage') {
+      DetectionDetailPage({result: this.detectionResultHistory[this.currentHistoryIndex]});
+    }
   }
 
   @Builder
@@ -116,6 +121,17 @@ export struct DetectHistory {
   @Builder
   DetectionItem(result: DetectionResultClass, index: number) { //此处的index为显示次序而不是result id
     Row() {
+      if (this.isSelectMode) {
+        Checkbox()
+          .select(this.selectedItems.has(result.id))
+          .onChange((value: boolean) => {
+            if (value) {
+              this.selectedItems.add(result.id)
+            } else {
+              this.selectedItems.delete(result.id)
+            }
+          })
+      }
       Column() {
         Text(result.id)
           .fontSize(16)
@@ -166,22 +182,30 @@ export struct DetectHistory {
         .height(32)
         .margin({ left: 8 })
         .onClick(() => {
-          AlertDialog.show({
-            title: '确认删除',
-            message: '您确定要删除这条记录吗？',
-            primaryButton: {
-              value: '取消',
-              action: () => {
-                console.info('取消删除');
+          if (!this.isSelectMode) {
+            AlertDialog.show({
+              title: '确认删除',
+              message: '您确定要删除这条记录吗？',
+              primaryButton: {
+                value: '取消',
+                action: () => {
+                  console.info('取消删除');
+                }
+              },
+              secondaryButton: {
+                value: '删除',
+                action: () => {
+                  this.deleteDetectionResult(result.id);
+                }
               }
-            },
-            secondaryButton: {
-              value: '删除',
-              action: () => {
-                this.deleteDetectionResult(result.id);
-              }
+            })
+          } else {
+            if (this.selectedItems.has(result.id)) {
+              this.selectedItems.delete(result.id)
+            } else {
+              this.selectedItems.add(result.id)
             }
-          })
+          }
         })
     }
     .width('100%')
@@ -190,8 +214,46 @@ export struct DetectHistory {
     .backgroundColor('#FFFFFF')
     .shadow({ radius: 4, color: 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
     .margin({ bottom: 4 })
+    .gesture(
+      LongPressGesture()
+        .onAction(() => {
+          if (!this.isSelectMode) {
+            this.isSelectMode = true
+            this.selectedItems.add(result.id)
+          }
+        })
+    )
   }
 
+  @Builder
+  MultiSelectBar() {
+    if (this.isSelectMode) {
+      Row() {
+        Button('取消').btnDefaultStyle().height(30)
+          .onClick(() => {
+            this.isSelectMode = false
+            this.selectedItems.clear()
+          })
+
+        Blank()
+        Button('全选').btnDefaultStyle().height(30)
+          .onClick(() => {
+            if (this.selectedItems.size === this.detectionResultHistory.length) {
+              this.selectedItems.clear()
+            } else {
+              this.selectedItems = new Set(this.detectionResultHistory.map(item => item.id))
+            }
+          })
+        Button('删除').btnDefaultStyle().height(30)
+          .onClick(() => {
+            this.deleteSelectedItems()
+          })
+      }
+      .width('100%')
+      .padding(10)
+      .backgroundColor('#F0F0F0')
+    }
+  }
 
   async loadDetectionResults(startDate?: string, endDate?: string, minDefects?: number, maxDefects?: number) {
     try {
@@ -202,6 +264,8 @@ export struct DetectHistory {
         this.detectionResultHistory = await this.detectionResultDao.getFilteredResults(start, end, minDefects, maxDefects);
       } else {
         this.detectionResultHistory = await this.detectionResultDao.getAll();
+        // 翻转结果, 让最近结果在顶端
+        this.detectionResultHistory.reverse();
       }
       // 同步数据库操作可以在这里添加
       await this.syncWithDatabase();
@@ -278,6 +342,36 @@ export struct DetectHistory {
       console.error('删除记录时出错:', error);
       ToastUtils.show('删除记录时发生错误');
     }
+  }
+
+  async deleteSelectedItems() {
+    AlertDialog.show({
+      title: '确认删除',
+      message: `您确定要删除选中的 ${this.selectedItems.size} 条记录吗？`,
+      primaryButton: {
+        value: '取消',
+        action: () => {
+          console.info('取消删除');
+        }
+      },
+      secondaryButton: {
+        value: '删除',
+        action: async () => {
+          try {
+            for (let id of this.selectedItems) {
+              await this.detectionResultDao.deleteById(id);
+            }
+            ToastUtils.show(`成功删除 ${this.selectedItems.size} 条记录`);
+            this.loadDetectionResults();
+            this.isSelectMode = false;
+            this.selectedItems.clear();
+          } catch (error) {
+            console.error('批量删除记录时出错:', error);
+            ToastUtils.show('删除记录时发生错误');
+          }
+        }
+      }
+    })
   }
 }
 
@@ -407,4 +501,9 @@ struct FilterComponent {
   }
 }
 
-
+@Styles function btnDefaultStyle() {
+  .margin({ top: 9 })
+  // 使用十六进制颜色代码替代 Color.LightGray
+  .backgroundColor('#4A90E2')
+  .borderRadius(18)
+}

@@ -126,7 +126,6 @@ export struct PcbDefectDetection {
           Text('实时检测页')
             .fontFamily('HarmonyHeiTi-Bold')
             .fontSize(24)
-            .fontColor("#000000") // 使用十六进制颜色代码
             .fontWeight(700)
             .width('100%')
 
@@ -323,7 +322,7 @@ export struct PcbDefectDetection {
   .width('100%')
   .height(40)
   .backgroundColor('#4A90E2')
-  .borderRadius(20)
+  .borderRadius(18)
 }
 
 @Styles function listHeader() {
@@ -341,14 +340,4 @@ export struct PcbDefectDetection {
   .margin({ top: 5 })
   .borderRadius(8);
 }
-
-@Styles function defectListHeader() {
-  // 保留其他样式，如果需要，可以添加额外样式
-}
-
-@Styles function defectListItem() {
-  // 保留其他样式
-  .padding({ right: 10 });
-}
-
 
