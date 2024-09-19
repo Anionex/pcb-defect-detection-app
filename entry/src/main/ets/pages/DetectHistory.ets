@@ -48,7 +48,9 @@ export struct DetectHistory {
             .constraintSize({ minHeight: '100%' })
             .edgeEffect(EdgeEffect.Spring)
             .scrollBar(BarState.Off);
-          }
+          }.align(Alignment.TopStart)
+.width('100%')
+.height('100%')
         }
         .onStateChange((refreshStatus: RefreshStatus) => {
           if (refreshStatus == RefreshStatus.Refresh) {

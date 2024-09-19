@@ -6,7 +6,7 @@ import { getPixelMapSize } from '../util/ImageUtils';
 @Component
 export struct DetectionDetailPage {
   @Prop result: DetectionResultClass;
-  private windowWidth:number | undefined
+  private windowWidth:number | undefined = undefined
   build() {
     NavDestination() {
       Scroll(){

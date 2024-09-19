@@ -4,13 +4,13 @@ import {ImageUtil, LogUtil, getPixelMapSize, getPixelMapSizeSync} from "../util/
 @Component
 export struct DetectionResultDisplay {
   @Prop detectionResult: DetectionResultClass;
-  private srcImgPath: string | undefined;
+  private srcImgPath: string | undefined = undefined
   private pixWidth: number = 0;
   private pixHeight: number = 0;
   private scaleNum: number = 1;
   @State scaledHeight: number = 0;
   private defectColorMapper: DefectColorMapper = new DefectColorMapper();
-  private windowWidth: number | undefined
+  private windowWidth: number | undefined = undefined
 
   build() {
       Column() {
