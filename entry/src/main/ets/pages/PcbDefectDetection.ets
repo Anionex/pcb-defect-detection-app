@@ -236,7 +236,7 @@ export struct PcbDefectDetection {
         DetectionResultDisplay({
           detectionResult: this.detectionResult,
         })
-        this.DefectResultList();
+
       } else {
         Text("暂无检测结果")
           .fontFamily('HarmonyHeiTi')
@@ -251,67 +251,6 @@ export struct PcbDefectDetection {
 
   }
 
-
-  @Builder
-  DefectResultList() {
-    Column() {
-      Row() {
-        Text("编号")
-          .fontFamily('HarmonyHeiTi')
-          .fontSize(12)
-          .fontWeight(600)
-          .width('10%');
-
-        Text("类型")
-          .fontFamily('HarmonyHeiTi')
-          .fontSize(12)
-          .fontWeight(600)
-          .width('25%');
-
-        Text("位置(y1,x1,y2,x2)")
-          .fontFamily('HarmonyHeiTi')
-          .fontSize(12)
-          .fontWeight(600)
-          .width('50%');
-
-        Text("置信度")
-          .fontFamily('HarmonyHeiTi')
-          .fontSize(12)
-          .fontWeight(600)
-          .width('15%');
-      }
-      .listHeader();
-
-      ForEach(this.detectionResult!.results, (defect: DefectClass, index: number) => {
-        Row() {
-          Text(`${index}`)
-            .fontFamily('HarmonyHeiTi')
-            .fontSize(16)
-            .fontWeight(500)
-            .width('10%');
-
-          Text(`${defect.cls}`)
-            .fontFamily('HarmonyHeiTi')
-            .fontSize(16)
-            .fontWeight(500)
-            .width('25%');
-
-          Text(`${defect.x1?.toFixed(this.resultPrecision)}, ${defect.y1?.toFixed(this.resultPrecision)}, ${defect.x2?.toFixed(this.resultPrecision)}, ${defect.y2?.toFixed(this.resultPrecision)}`)
-            .fontFamily('HarmonyHeiTi')
-            .fontSize(16)
-            .fontWeight(500)
-            .width('50%');
-
-          Text(`${defect.conf?.toFixed(2)}`)
-            .fontFamily('HarmonyHeiTi')
-            .fontSize(16)
-            .fontWeight(500)
-            .width('15%');
-        }
-        .listItem();
-      }, (defect: DefectClass) => defect.id);
-    }
-  }
 }
 
 
@@ -325,19 +264,4 @@ export struct PcbDefectDetection {
   .borderRadius(18)
 }
 
-@Styles function listHeader() {
-  .padding({ top: 10, bottom: 10 })
-  // 使用十六进制颜色代码替代 Color.LightGray
-  .backgroundColor('#FFFFFF')
-  .margin({ top: 5 })
-  .borderRadius(8)
-  .shadow(ShadowStyle.OUTER_DEFAULT_XS);
-}
-
-@Styles function listItem() {
-  .padding({ top: 10, bottom: 10 })
-  .backgroundColor("#FFFFFF") // 使用十六进制颜色代码替代 Color.White
-  .margin({ top: 5 })
-  .borderRadius(8);
-}
 
