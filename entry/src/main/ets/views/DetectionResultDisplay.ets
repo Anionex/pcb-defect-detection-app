@@ -15,6 +15,8 @@ export struct DetectionResultDisplay {
   @State selectedDefects: DefectNameClass[] = [];
   @State availableDefects: DefectNameClass[] = [];
 
+  //settings
+  @StorageLink("displayConfThreshold") displayConfThreshold: number = 0.25;
   aboutToAppear() {
     // 初始化可用的缺陷类型和已选择的缺陷类型
     this.availableDefects = Array.from(new Set(this.detectionResult.results.map(defect => defect.cls)));
@@ -74,7 +76,9 @@ export struct DetectionResultDisplay {
             Rect().width(1).height(1)
               .offset({ x: this.windowWidth, y: this.scaledHeight });
 
-            ForEach(this.detectionResult!.results, (defect: DefectClass) => {
+            ForEach(this.detectionResult!.results.filter(defect => 
+              this.selectedDefects.includes(defect.cls) && defect.conf! >= this.displayConfThreshold
+            ), (defect: DefectClass) => {
               if (this.selectedDefects.includes(defect.cls)) {
                 Text(`${defect.cls}:${defect.conf!.toFixed(2)}`)
                   .offset({ x: defect.x1! * this.scaleNum, y: defect.y1! * this.scaleNum - 10 })
@@ -97,6 +101,37 @@ export struct DetectionResultDisplay {
           .width("100%")
           .shadow(ShadowStyle.OUTER_DEFAULT_XS);
         }
+
+        // 添加置信度阈值滑动条
+        Column() {
+          Row() {
+            Text('置信度阈值:')
+              .fontSize(14)
+              .fontColor(Color.Black)
+            Text(this.displayConfThreshold.toFixed(2))
+              .fontSize(14)
+              .fontColor(Color.Blue)
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.SpaceBetween)
+          .margin({ top: 10, bottom: 5 })
+
+          Slider({
+            value: this.displayConfThreshold,
+            min: 0,
+            max: 1,
+            step: 0.01,
+            style: SliderStyle.OutSet
+          })
+            .width('100%')
+            .onChange((value: number) => {
+              this.displayConfThreshold = value;
+            })
+        }
+        .padding(10)
+        .backgroundColor('#f0f0f0')
+        .borderRadius(8)
+        .margin({ top: 10, bottom: 10 })
 
         this.DefectResultList();
       }
@@ -132,7 +167,9 @@ export struct DetectionResultDisplay {
       }
       .listHeader();
 
-      ForEach(this.detectionResult!.results.filter(defect => this.selectedDefects.includes(defect.cls)), (defect: DefectClass) => {
+      ForEach(this.detectionResult!.results.filter(defect => 
+        this.selectedDefects.includes(defect.cls) && defect.conf! >= this.displayConfThreshold
+      ), (defect: DefectClass) => {
         Row() {
           Text(`${parseInt(defect.id.split('_')[3])}`)
             .fontFamily('HarmonyHeiTi')

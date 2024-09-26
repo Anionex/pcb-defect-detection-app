@@ -17,6 +17,7 @@ AppStorage.setOrCreate('maxResultNum', 0)
 
 @Component
 export struct PcbDefectDetection {
+  @StorageLink("displayConfThreshold") displayConfThreshold: number = 0.25;
   @State srcImgPath: string = '';
   @State detectionResult: DetectionResultClass | null = null;
   @State isLoading: boolean = false;

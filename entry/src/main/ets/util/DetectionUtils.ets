@@ -38,7 +38,8 @@ export async function sendDetectRequest(filePath: string, callback?: (result: st
     // const pixelMap = await imageSource.createPixelMap(decodingOptions);
 
     const imagePackerApi = image.createImagePacker();
-    let packOpts: GeneratedObjectLiteralInterface_2 = { format:"image/jpeg", quality:98 };
+    let uploadImageQuality:number= AppStorage.get("uploadImageQuality")??0.98
+    let packOpts: GeneratedObjectLiteralInterface_2 = { format:"image/jpeg", quality:uploadImageQuality * 100};
     await imagePackerApi.packing(imageSource, packOpts).then( data => {
       // data 为打包获取到的文件流，写入文件保存即可得到一张图片
       console.info("get compressed data")
