@@ -1,6 +1,22 @@
 import { DetectionResultClass } from "../model/DetectionResultsClasses";
-import { McLineChart, Options } from '@mcui/mccharts'
+import { McLineChart, McBarChart, Options } from '@mcui/mccharts'
 import { DefectColorMapper } from "../model/DefectColorMapper"
+
+// 定义 BarChartSeriesItem 接口
+interface BarChartSeriesItem {
+  name: string;
+  data: number[];
+  color: string;
+}
+
+// 创建 BarChartSeriesItem 的函数
+function makeBarChartSeriesItem(params: BarChartSeriesItem): BarChartSeriesItem {
+  return {
+    name: params.name,
+    data: params.data,
+    color: params.color
+  };
+}
 
 class DefectTypeData {
   Mouse_bite: number[] = [];
@@ -23,44 +39,87 @@ interface GeneratedTypeLiteralInterface_1 {
 
 class SeriesItem {
   name: string = '';
-  data: number[] = [];color:string;
+  data: number[] = [];
+  color:string = "";
   lineStyle?: GeneratedTypeLiteralInterface_1;
 }
-
+['#296DFF',
+  '#ff5495fd',
+  '#ff1acffd',
+  '#ff72e4fd',
+  '#7B72F7',
+  '#F85758',
+  '#FFBF29',
+  '#D1E9F9',
+  '#F5FAFC',
+  '#5A657A']
 @Component
 export struct Chart {
   @Prop detectionResultHistory: Array<DetectionResultClass>;
-  @State chartOptions: Options = new Options({});
+  private lineChartOptions: Options = new Options({});
+  private barChartOptions: Options = new Options({}); // 柱状图选项
   private defectColorMapper: DefectColorMapper = new DefectColorMapper();
 
   aboutToAppear() {
-    this.updateChartData();
+    this.updateLineChartData();
+    this.updateBarChartData();
   }
 
-  updateChartData() {
+  updateLineChartData() {
     const hourlyData = this.processHourlyData();
     const defectTypes = ['Mouse_bite', 'Open_circuit', 'Short', 'Spur', 'Spurious_copper'];
 
     const series: SeriesItem[] = [];
     series.push({
       name: '每小时缺陷总和',
-      data: hourlyData.defects
+      data: hourlyData.defects,
+      color: "#41ae3c",
     });
 
     defectTypes.forEach(type => {
       series.push({
         name: type,
         data: this.getDefectTypeData(hourlyData.defectTypes, type),
-        color: "#ffffff",
+        color: this.defectColorMapper.getColor(type),
         lineStyle: {
           color: this.defectColorMapper.getColor(type) // 颜色玄学问题还没搞定
         }
       });
     });
 
-    this.chartOptions = new Options({
+    this.lineChartOptions = new Options({
       xAxis: {
         data: hourlyData.hours
+      },
+      yAxis: {
+        name: '缺陷数量'
+      },
+      series: series
+    });
+
+
+  }
+
+  updateBarChartData() {
+    const defectTypes = ['Mouse_bite', 'Open_circuit', 'Short', 'Spur', 'Spurious_copper'];
+
+    // 计算每种缺陷类型的总数
+    const defectCounts = defectTypes.map(type => 
+      this.detectionResultHistory.reduce((sum, result) => 
+        sum + result.results.filter(defect => defect.cls === type).length, 0
+      )
+    );
+
+    // 为每种缺陷类型创建一个系列
+    const series = defectTypes.map((type, index) => makeBarChartSeriesItem({
+      name: type,
+      data: [defectCounts[index]],  // 每个系列只有一个数据点
+      color: this.defectColorMapper.getColor(type)  // 使用 DefectColorMapper 获取颜色
+    }));
+
+    this.barChartOptions = new Options({
+      xAxis: {
+        data: ['']
       },
       yAxis: {
         name: '缺陷数量'
@@ -85,7 +144,7 @@ export struct Chart {
     const defectTypes = ['Mouse_bite', 'Open_circuit', 'Short', 'Spur', 'Spurious_copper'];
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    // getTimee是获取的是当前时间的毫秒
+    // getTime是获取的是当前时间的毫秒
     hourlyData.startHour = now.getHours();
 
     console.info(String(now))
@@ -163,10 +222,18 @@ export struct Chart {
             .margin({ top: 20, bottom: 20 })
 
           McLineChart({
-            options: this.chartOptions
+            options: this.lineChartOptions
           })
             .width('100%')
             .height('300vp')
+
+          // 新增柱状图
+          McBarChart({
+            options: this.barChartOptions
+          })
+            .width('100%')
+            .height('300vp')
+            .margin({ top: 20 })
         }
         .width('100%')
         .height('100%')

@@ -1,7 +1,7 @@
 export class DefectColorMapper {
   colorMap: Map<string, string> = new Map([
     ['Mouse_bite', "#0000FF"], // Blue
-    ['Open_circuit', "#FFC0CB"], // Pink
+    ['Open_circuit', "#7B72F7"], // Pink
     ['Short', "#FF0000"], // Red
     ['Spur', "#FFA500"], // Orange
     ['Spurious_copper', "#FFFF00"] // Yellow
