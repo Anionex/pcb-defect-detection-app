@@ -45,13 +45,9 @@ export struct DetectHistory {
               }
               .padding({ top: 16, bottom: 16, left: 16, right: 16 })
             }
-            .backgroundColor('#F1F3F5')
-            .align(Alignment.TopStart)
             .constraintSize({ minHeight: '100%' })
             .edgeEffect(EdgeEffect.Spring)
-            .layoutWeight(1)
-            .scrollBar(BarState.Off)
-            .align(Alignment.TopStart)
+            .scrollBar(BarState.Off);
           }.align(Alignment.TopStart)
 .width('100%')
 .height('100%')
