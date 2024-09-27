@@ -26,12 +26,9 @@ export struct Settings {
           valueToChange: this.uploadImageQuality
         })
       }
-      .padding({
-        top: 12,
-        right: 16,
-        bottom: 12,
-        left: 16
-      })
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#F5F5F5')
 
     }
     .backgroundColor('#F1F3F5')

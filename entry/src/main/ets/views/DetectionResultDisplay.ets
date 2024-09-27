@@ -50,7 +50,7 @@ export struct DetectionResultDisplay {
         }
         .height(100)
         .width('100%')
-        .backgroundColor('#f0f0f0')
+        //.backgroundColor('#f0f0f0')
         .borderRadius(8)
         .margin({ bottom: 10 })
 
@@ -129,7 +129,7 @@ export struct DetectionResultDisplay {
             })
         }
         .padding(10)
-        .backgroundColor('#f0f0f0')
+        //.backgroundColor('#f0f0f0')
         .borderRadius(8)
         .margin({ top: 10, bottom: 10 })
 

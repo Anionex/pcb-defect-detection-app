@@ -214,18 +214,8 @@ export struct PcbDefectDetection {
         .fontWeight(350)
         .width('100%')
 
-      Row() {
-        Text("调整设置")
-          .backgroundColor('#FFFFFF')
-          .fontFamily('HarmonyHeiTi-Bold')
-          .fontSize(18)
-          .fontColor("#000000") // 使用十六进制颜色代码
-          .fontWeight(350)
-          .width('100%');
-      }
-      .margin({ top: 19 })
-      .backgroundColor("#F5F5F5")
-      .height(33)
+      Row()
+      .backgroundColor("transparent")
       .width('100%')
       .onAreaChange((oldValue, newValue) => {
         this.windowWidth = Number(newValue.width);
