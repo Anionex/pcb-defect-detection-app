@@ -3,7 +3,8 @@
   "description": "Please describe the basic information.",
   "dependencies": {
     "@ohos/axios": "^2.2.3",
-    "@pura/harmony-utils": "^1.0.9"
+    "@pura/harmony-utils": "^1.0.9",
+    "@mcui/mccharts": "^2.0.9"
   },
   "devDependencies": {
     "@ohos/hypium": "1.0.19",

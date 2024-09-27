@@ -4,6 +4,7 @@ import { ToastUtils } from '../util/ToastUtils';
 import { DateUtil, PickerUtil, FileUtil } from '@pura/harmony-utils';
 import type { BusinessError } from '@ohos.base';
 import {DetectionDetailPage} from "./DetectionDetailPage"
+import {Chart} from "./Chart"
 @Component
 @Preview
 export struct DetectHistory {
@@ -45,10 +46,13 @@ export struct DetectHistory {
               }
               .padding({ top: 16, bottom: 16, left: 16, right: 16 })
             }
+            .backgroundColor('#F1F3F5')
             .constraintSize({ minHeight: '100%' })
             .edgeEffect(EdgeEffect.Spring)
-            .scrollBar(BarState.Off);
-          }.align(Alignment.TopStart)
+            .layoutWeight(1)
+            .scrollBar(BarState.Off)
+            .align(Alignment.TopStart)
+          }
 .width('100%')
 .height('100%')
         }
@@ -79,8 +83,11 @@ export struct DetectHistory {
 
   @Builder
   PageMap(name: string) {
-    if (name === 'DetectionDetailPage') {
+    if (name == 'DetectionDetailPage') {
       DetectionDetailPage({result: this.detectionResultHistory[this.currentHistoryIndex]});
+    }
+    if(name == 'Chart') {
+      Chart({detectionResultHistory: this.detectionResultHistory})
     }
   }
 
@@ -92,6 +99,14 @@ export struct DetectHistory {
         .fontWeight(FontWeight.Bold)
         .fontColor('#333333')
       Blank()
+      Image($r('app.media.ic_chart'))
+        .width(24)
+        .height(24)
+        .margin({ right: 16 })
+        .onClick(() => {
+          ToastUtils.show(`显示图表`);
+          this.detectHistoryPageStack.replacePath({ name: 'Chart' });
+        })
       Button('打印报表')
         .fontSize(16)
         .fontColor('#FFFFFF')

@@ -31,6 +31,16 @@ export struct AboutPage {
             })
             .margin({ bottom: 10 })
 
+          // Text('关于开发者')
+          //   .fontSize(14)
+          //   .fontColor(Color.Gray)
+          //   .margin({ top: 20 })
+          //
+          // Text('暨南大学计算机专业大二在读，喜欢不一样的东西。')
+          //   .fontSize(14)
+          //   .textAlign(TextAlign.Center)
+          //   .margin({ bottom: 20, left: 20, right: 20 })
+
           Text('开发者：anion (Anionex)')
             .fontSize(14)
             .fontColor(Color.Gray)
@@ -43,7 +53,7 @@ export struct AboutPage {
         }
         .width('100%')
         .height('100%')
-        .backgroundColor(Color.White)
+        .backgroundColor("#F5F5F5")
       }
       .backgroundColor('#F1F3F5')
       .constraintSize({ minHeight: '100%' })
@@ -52,6 +62,6 @@ export struct AboutPage {
       .scrollBar(BarState.Off)
       .align(Alignment.TopStart)
     }
-    .title('关于我')
+    .title('关于')
   }
 }
