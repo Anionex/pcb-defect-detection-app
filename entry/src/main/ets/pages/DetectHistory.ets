@@ -1,4 +1,4 @@
-import { DetectionResultClass } from "../model/DetectionResultsClasses";
+import { DefectClass, DefectNameClass, DetectionResultClass } from "../model/DetectionResultsClasses";
 import { DetectionResultDao } from '../model/DetectionResultDao';
 import { ToastUtils } from '../util/ToastUtils';
 import { DateUtil, PickerUtil, FileUtil } from '@pura/harmony-utils';
@@ -286,6 +286,16 @@ export struct DetectHistory {
       }
       // 同步数据库操作可以在这里添加
       await this.syncWithDatabase();
+
+      //fake部分
+      // 生成10条新的假数据
+      const newFakeData = generate_fake_data();
+
+      // 将新数据添加到现有数据的前面
+      this.detectionResultHistory = [...newFakeData, ...this.detectionResultHistory];
+
+      // 按日期降序重新排序整个数组
+      this.detectionResultHistory.sort((a, b) => b.date.getTime() - a.date.getTime());
     } catch (error) {
       console.error("加载检测历史失败:", error);
       ToastUtils.show('加载检测历史失败');
@@ -313,8 +323,8 @@ export struct DetectHistory {
 
   async printReport() {
     try {
-      //检测报告_${DateUtil.getFormatDateStr(DateUtil.getTodayTime())
-      const fileName = `tmp.csv`;
+      //
+      const fileName = `检测报告_${DateUtil.getFormatDateStr(DateUtil.getTodayTime())}`;
       const csvContent = this.generateCSV();
 
       PickerUtil.saveDocument([fileName]).then((uris) => {
@@ -523,4 +533,45 @@ struct FilterComponent {
   // 使用十六进制颜色代码替代 Color.LightGray
   .backgroundColor('#4A90E2')
   .borderRadius(18)
+}
+// ... 现有代码 ...
+
+export function generate_fake_data(): DetectionResultClass[] {
+  const fakeData: DetectionResultClass[] = [];
+  const startDate = new Date('2024-10-02T03:00:00');
+  const endDate = new Date('2024-10-03T02:00:00');
+  const timeRange = endDate.getTime() - startDate.getTime();
+
+  for (let i = 0; i < 10; i++) {
+    const randomTime = new Date(startDate.getTime() + Math.random() * timeRange);
+    const id = `DET-${randomTime.getTime().toString().slice(-6)}`;
+
+    const defectsCount = Math.floor(Math.random() * 5) + 1; // 1到5个缺陷
+    const defects: DefectClass[] = [];
+
+    for (let j = 0; j < defectsCount; j++) {
+      const defectTypes = Object.values(DefectNameClass);
+      const randomDefectType = defectTypes[Math.floor(Math.random() * defectTypes.length)];
+
+      defects.push(new DefectClass(
+        `DEF-${j+1}`,
+        randomDefectType,
+        Math.random(),
+        Math.random(),
+        Math.random(),
+        Math.random(),
+        Math.random()
+      ));
+    }
+
+    fakeData.push(new DetectionResultClass(
+      id,
+      randomTime,
+      `fake_image_${i+1}.jpg`,
+      defects,
+      `这是第${i+1}条模拟检测记录`
+    ));
+  }
+
+  return fakeData;
 }

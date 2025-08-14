@@ -7,7 +7,7 @@ export struct Settings {
   @StorageLink("displayConfThreshold") displayConfThreshold: number = 0.25;
   @StorageLink("uploadImageQuality") uploadImageQuality: number = 0.98;
   @Provide('settingsPageStack') settingsPageStack: NavPathStack = new NavPathStack();
-
+  @StorageLink("precision") precision: number = 1;
   build() {
     Navigation(this.settingsPageStack) {
       Scroll() {
@@ -28,6 +28,15 @@ export struct Settings {
             valueToChange: this.uploadImageQuality
           })
 
+          SettingItem({
+            icon: $r('app.media.ic_confidence'),
+            title: '精确度(小数点)',
+            value: this.precision.toString(),
+            valueToChange: $precision,
+            min: 0,
+            max: 5,
+            step: 1
+          })
           // 新增关于页面的设置项
           Row() {
             Image($r('app.media.ic_person'))
@@ -99,6 +108,9 @@ export struct SettingItem {
   @Prop title: string;
   @Prop value: string;
   @Link valueToChange: number;
+  @Prop min: number = 0;
+  @Prop max: number = 1;
+  @Prop step: number = 0.01;
 
   build() {
     Column() {
@@ -120,10 +132,10 @@ export struct SettingItem {
       .alignItems(VerticalAlign.Center)
 
       Slider({
-        value: parseFloat(this.value),
-        min: 0,
-        max: 1,
-        step: 0.01,
+        value: this.valueToChange,
+        min: this.min,
+        max: this.max,
+        step: this.step,
         style: SliderStyle.OutSet
       })
         .width('100%')

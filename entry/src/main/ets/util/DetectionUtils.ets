@@ -158,10 +158,13 @@ export async function parseDetectionResult(responseData: RawDetectionResultClass
     // 将生成的 Defect 对象添加到数组中
     defects.push(defect);
   }
-
+  const startDate = new Date('2024-10-02T03:00:00');
+  const endDate = new Date('2024-10-03T02:00:00');
+  const timeRange = endDate.getTime() - startDate.getTime();
+  const randomTime = new Date(startDate.getTime() + Math.random() * timeRange);
   // 创建 DetectionResultClass 实例，使用从 response 中获取的数据
   const detectionResult = new DetectionResultClass(
-    newId,                   // 动态生成的 id
+    `DET-${randomTime.getTime().toString().slice(-6)}`,                   // 动态生成的 id
     new Date(),              // 当前日期
     srcImgPath,              // 图片路径
     defects,                 // 所有的 Defect 对象

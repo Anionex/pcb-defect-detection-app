@@ -159,7 +159,7 @@ export struct Chart {
       const resultDate = new Date(result.date);
       console.info("resultDateH:" + resultDate.getHours())
       if (resultDate >= twentyFourHoursAgo && resultDate <= now) {
-        const index = 23 - (hourlyData.startHour - resultDate.getHours())
+        const index = (24 +  (hourlyData.startHour - resultDate.getHours()))%24
         result.results.forEach(defect => {
           if (defectTypes.includes(defect.cls)) {
             this.incrementDefectCount(hourlyData.defectTypes, defect.cls, index);
